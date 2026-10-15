@@ -1,0 +1,14 @@
+.cache/
+**/bin/
+**/obj/
+**/node_modules/
+**/.expo/
+**/dist/
+**/dist-*/
+**/coverage/
+**/TestResults/
+**/.env
+**/.env.local
+*.user
+*.log
+.DS_Store

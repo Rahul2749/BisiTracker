@@ -1,0 +1,52 @@
+name: Checks
+on: [push, pull_request]
+permissions:
+  contents: read
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: bisi
+          POSTGRES_PASSWORD: bisi-local-only
+          POSTGRES_DB: bisitracker
+        ports: ["54329:5432"]
+        options: >-
+          --health-cmd "pg_isready -U bisi -d bisitracker"
+          --health-interval 3s --health-timeout 3s --health-retries 20
+    steps:
+      - uses: actions/checkout@v7
+        with: { persist-credentials: false }
+      - uses: actions/setup-dotnet@v6
+        with: { dotnet-version: '10.0.x' }
+      - run: dotnet test backend/BisiTracker.sln --configuration Release
+      - run: dotnet list backend/BisiTracker.sln package --vulnerable --include-transitive
+  mobile:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with: { persist-credentials: false }
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: |
+            mobile/package-lock.json
+            contracts/package-lock.json
+      - run: npm ci
+        working-directory: mobile
+      - run: npm ci
+        working-directory: contracts
+      - run: npm run generate
+        working-directory: contracts
+      - run: git diff --exit-code -- mobile/src/api/schema.d.ts
+      - run: npm run lint
+        working-directory: mobile
+      - run: npm run typecheck
+        working-directory: mobile
+      - run: npm test
+        working-directory: mobile
+      - run: npm run export:android
+        working-directory: mobile

@@ -1,0 +1,1057 @@
+{
+  "openapi": "3.1.1",
+  "info": {
+    "title": "BisiTracker.Api | v1",
+    "version": "1.0.0"
+  },
+  "servers": [
+    {
+      "url": "http://localhost:5080/"
+    }
+  ],
+  "paths": {
+    "/health/live": {
+      "get": {
+        "tags": [
+          "BisiTracker.Api"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/health/ready": {
+      "get": {
+        "tags": [
+          "BisiTracker.Api"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/dev/sign-in": {
+      "post": {
+        "tags": [
+          "BisiTracker.Api"
+        ],
+        "operationId": "DevelopmentSignIn",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DevelopmentSignIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DevelopmentSession"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/me": {
+      "get": {
+        "tags": [
+          "BisiTracker.Api"
+        ],
+        "operationId": "GetOrganizer",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrganizerView"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/groups": {
+      "get": {
+        "tags": [
+          "BisiTracker.Api"
+        ],
+        "operationId": "ListGroups",
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 1
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 20
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/GroupSummary"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "BisiTracker.Api"
+        ],
+        "operationId": "CreateGroup",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateGroupRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MutationResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/groups/{id}": {
+      "get": {
+        "tags": [
+          "BisiTracker.Api"
+        ],
+        "operationId": "GetLedger",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LedgerView"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/groups/{id}/members": {
+      "post": {
+        "tags": [
+          "BisiTracker.Api"
+        ],
+        "operationId": "AddMember",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AddMemberRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MutationResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/groups/{id}/activate": {
+      "post": {
+        "tags": [
+          "BisiTracker.Api"
+        ],
+        "operationId": "ActivateGroup",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ActivateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MutationResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/groups/{id}/cycles/{cycleId}/members/{memberId}/payments": {
+      "post": {
+        "tags": [
+          "BisiTracker.Api"
+        ],
+        "operationId": "RecordPayment",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "cycleId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "memberId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RecordPaymentRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MutationResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/groups/{id}/payments/{paymentId}/reverse": {
+      "post": {
+        "tags": [
+          "BisiTracker.Api"
+        ],
+        "operationId": "ReversePayment",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "paymentId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReversePaymentRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MutationResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/groups/{id}/cycles/{cycleId}/payout": {
+      "post": {
+        "tags": [
+          "BisiTracker.Api"
+        ],
+        "operationId": "RecordPayout",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "cycleId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RecordPayoutRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MutationResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "ActivateRequest": {
+        "required": [
+          "operationId",
+          "expectedVersion"
+        ],
+        "type": "object",
+        "properties": {
+          "operationId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "expectedVersion": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "AddMemberRequest": {
+        "required": [
+          "operationId",
+          "expectedVersion",
+          "name"
+        ],
+        "type": "object",
+        "properties": {
+          "operationId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "expectedVersion": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "name": {
+            "type": "string"
+          }
+        }
+      },
+      "AuditView": {
+        "required": [
+          "id",
+          "kind",
+          "description",
+          "recordedAt"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "recordedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "CreateGroupRequest": {
+        "required": [
+          "operationId",
+          "name",
+          "contributionPaise",
+          "startMonth",
+          "dueDay",
+          "language",
+          "memberNames"
+        ],
+        "type": "object",
+        "properties": {
+          "operationId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "contributionPaise": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "startMonth": {
+            "type": "string",
+            "format": "date"
+          },
+          "dueDay": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "language": {
+            "type": "string"
+          },
+          "memberNames": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "CycleView": {
+        "required": [
+          "id",
+          "number",
+          "dueDate",
+          "recipientId",
+          "recipientName",
+          "expectedPaise",
+          "collectedPaise",
+          "outstandingPaise",
+          "payoutShortfallPaise",
+          "dues",
+          "payout"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "number": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "dueDate": {
+            "type": "string",
+            "format": "date"
+          },
+          "recipientId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "recipientName": {
+            "type": "string"
+          },
+          "expectedPaise": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "collectedPaise": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "outstandingPaise": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "payoutShortfallPaise": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "dues": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DueView"
+            }
+          },
+          "payout": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/PayoutSummary"
+              }
+            ]
+          }
+        }
+      },
+      "DevelopmentSession": {
+        "required": [
+          "accessToken",
+          "expiresAt",
+          "name"
+        ],
+        "type": "object",
+        "properties": {
+          "accessToken": {
+            "type": "string"
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "name": {
+            "type": "string"
+          }
+        }
+      },
+      "DevelopmentSignIn": {
+        "required": [
+          "profile"
+        ],
+        "type": "object",
+        "properties": {
+          "profile": {
+            "type": "string"
+          }
+        }
+      },
+      "DueView": {
+        "required": [
+          "id",
+          "memberId",
+          "name",
+          "expectedPaise",
+          "paidPaise",
+          "outstandingPaise",
+          "status",
+          "isOverdue",
+          "payments"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "memberId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "expectedPaise": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "paidPaise": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "outstandingPaise": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "status": {
+            "type": "string"
+          },
+          "isOverdue": {
+            "type": "boolean"
+          },
+          "payments": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PaymentView"
+            }
+          }
+        }
+      },
+      "GroupSummary": {
+        "required": [
+          "id",
+          "name",
+          "status",
+          "version",
+          "language",
+          "contributionPaise",
+          "memberCount",
+          "startMonth",
+          "updatedAt"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "version": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "language": {
+            "type": "string"
+          },
+          "contributionPaise": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "memberCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "startMonth": {
+            "type": "string",
+            "format": "date"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "LedgerView": {
+        "required": [
+          "id",
+          "name",
+          "status",
+          "version",
+          "currency",
+          "language",
+          "contributionPaise",
+          "dueDay",
+          "startMonth",
+          "updatedAt",
+          "members",
+          "cycles",
+          "history"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "version": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "currency": {
+            "type": "string"
+          },
+          "language": {
+            "type": "string"
+          },
+          "contributionPaise": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "dueDay": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "startMonth": {
+            "type": "string",
+            "format": "date"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "members": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MemberView"
+            }
+          },
+          "cycles": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CycleView"
+            }
+          },
+          "history": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AuditView"
+            }
+          }
+        }
+      },
+      "MemberView": {
+        "required": [
+          "id",
+          "name",
+          "position"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "position": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "MutationResult": {
+        "required": [
+          "groupId",
+          "entityId"
+        ],
+        "type": "object",
+        "properties": {
+          "groupId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "entityId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          }
+        }
+      },
+      "OrganizerView": {
+        "required": [
+          "name"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          }
+        }
+      },
+      "PaymentView": {
+        "required": [
+          "id",
+          "amountPaise",
+          "paymentDate",
+          "method",
+          "reference",
+          "recordedAt",
+          "reversalReason"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "amountPaise": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "paymentDate": {
+            "type": "string",
+            "format": "date"
+          },
+          "method": {
+            "type": "string"
+          },
+          "reference": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "recordedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "reversalReason": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "PayoutSummary": {
+        "required": [
+          "amountPaise",
+          "outstandingPaise",
+          "entries"
+        ],
+        "type": "object",
+        "properties": {
+          "amountPaise": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "outstandingPaise": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "entries": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PayoutView"
+            }
+          }
+        }
+      },
+      "PayoutView": {
+        "required": [
+          "id",
+          "amountPaise",
+          "paymentDate",
+          "fundingNote"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "amountPaise": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "paymentDate": {
+            "type": "string",
+            "format": "date"
+          },
+          "fundingNote": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "RecordPaymentRequest": {
+        "required": [
+          "operationId",
+          "amountPaise",
+          "paymentDate",
+          "method",
+          "reference"
+        ],
+        "type": "object",
+        "properties": {
+          "operationId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "amountPaise": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "paymentDate": {
+            "type": "string",
+            "format": "date"
+          },
+          "method": {
+            "type": "string"
+          },
+          "reference": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "RecordPayoutRequest": {
+        "required": [
+          "operationId",
+          "expectedVersion",
+          "amountPaise",
+          "paymentDate",
+          "fundingNote"
+        ],
+        "type": "object",
+        "properties": {
+          "operationId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "expectedVersion": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "amountPaise": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "paymentDate": {
+            "type": "string",
+            "format": "date"
+          },
+          "fundingNote": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "ReversePaymentRequest": {
+        "required": [
+          "operationId",
+          "expectedVersion",
+          "reason"
+        ],
+        "type": "object",
+        "properties": {
+          "operationId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "expectedVersion": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "reason": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  },
+  "tags": [
+    {
+      "name": "BisiTracker.Api"
+    }
+  ]
+}

@@ -1,0 +1,6 @@
+{
+  "name": "bisitracker-contracts",
+  "private": true,
+  "scripts": { "generate": "openapi-typescript openapi.json -o ../mobile/src/api/schema.d.ts" },
+  "devDependencies": { "openapi-typescript": "7.13.0", "typescript": "~5.9.3" }
+}
