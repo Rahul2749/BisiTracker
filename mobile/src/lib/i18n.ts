@@ -35,6 +35,17 @@ const en = {
   sessionExpired: 'Your session expired. Sign in again to continue.', networkError: 'Could not reach the server. Check your connection and try again.',
   uncertain: 'The save may have reached the server. Retry this same entry to avoid a duplicate.',
   more: 'Load more groups', reasonRequired: 'Enter a reason of up to 300 characters.',
+  editMembers: 'Edit members & order', saveMembers: 'Save members', removeMember: 'Remove', moveUp: 'Move up', moveDown: 'Move down',
+  editMembersHelp: 'Edit names, remove members, and move them into payout order. Changes apply when you save. Cancel keeps the current list.',
+  emptyMembers: 'No members in this draft. Add at least two before starting.',
+  payoutCorrectionTitle: 'Correct a payout', reversePayout: 'Reverse payout',
+  payoutCorrectionHelp: 'The original payout stays in history. Reversing it restores the amount still owed. Record the correct payout afterward. This does not move money.',
+  cycleOpen: 'Open', cycleClosed: 'Closed', closeCycle: 'Close cycle', reopenCycle: 'Reopen cycle',
+  closeCycleHelp: 'Closing locks this month’s payment and payout records. All contributions and the full payout must be recorded first.',
+  reopenCycleHelp: 'Reopening allows corrections to this month. Your reason will appear in edit history.',
+  closedHelp: 'This cycle is closed. Reopen it with a reason before changing records.',
+  reopenReason: 'Reason for reopening', nextCycle: 'Next cycle', historyMore: 'Load older changes', historyEnd: 'You have reached the first recorded change.',
+  historyChanged: 'The ledger changed while you were browsing. Refresh to load the current history.',
 } as const;
 
 const mr: Record<keyof typeof en, string> = {
@@ -67,6 +78,17 @@ const mr: Record<keyof typeof en, string> = {
   sessionExpired: 'सत्र संपले. पुढे जाण्यासाठी पुन्हा साइन इन करा.', networkError: 'सर्व्हरशी संपर्क झाला नाही. इंटरनेट तपासून पुन्हा प्रयत्न करा.',
   uncertain: 'नोंद सर्व्हरपर्यंत पोहोचली असू शकते. दुबार नोंद टाळण्यासाठी हीच नोंद पुन्हा पाठवा.',
   more: 'आणखी समूह पहा', reasonRequired: '३०० अक्षरांपर्यंत दुरुस्तीचे कारण लिहा.',
+  editMembers: 'सदस्य व पाळीचा क्रम बदला', saveMembers: 'सदस्य जतन करा', removeMember: 'काढा', moveUp: 'वर हलवा', moveDown: 'खाली हलवा',
+  editMembersHelp: 'नावे बदला, सदस्य काढा आणि पाळीचा क्रम ठरवा. जतन केल्यावर बदल लागू होतील. रद्द केल्यास सध्याची यादी कायम राहील.',
+  emptyMembers: 'मसुद्यात सदस्य नाहीत. सुरू करण्यापूर्वी किमान दोन सदस्य जोडा.',
+  payoutCorrectionTitle: 'दिलेल्या भिशीची दुरुस्ती', reversePayout: 'भिशीची नोंद उलटवा',
+  payoutCorrectionHelp: 'मूळ नोंद इतिहासात राहते. उलटवल्यानंतर देण्याची बाकी रक्कम पुन्हा वाढते. त्यानंतर योग्य नोंद करा. यात पैसे पाठवले जात नाहीत.',
+  cycleOpen: 'खुला', cycleClosed: 'बंद', closeCycle: 'मासिक नोंदी बंद करा', reopenCycle: 'मासिक नोंदी पुन्हा उघडा',
+  closeCycleHelp: 'बंद केल्यावर या महिन्याच्या नोंदी बदलता येणार नाहीत. आधी सर्व हप्ते आणि पूर्ण भिशी दिल्याची नोंद करा.',
+  reopenCycleHelp: 'पुन्हा उघडल्यावर या महिन्याच्या नोंदी दुरुस्त करता येतील. कारण इतिहासात दिसेल.',
+  closedHelp: 'या महिन्याच्या नोंदी बंद आहेत. बदल करण्यापूर्वी कारण देऊन पुन्हा उघडा.',
+  reopenReason: 'पुन्हा उघडण्याचे कारण', nextCycle: 'पुढील महिना', historyMore: 'जुने बदल पहा', historyEnd: 'सर्वात पहिला बदल दाखवला आहे.',
+  historyChanged: 'इतिहास पाहताना नोंदी बदलल्या आहेत. अद्ययावत इतिहासासाठी पुन्हा लोड करा.',
 };
 
 export type TranslationKey = keyof typeof en;

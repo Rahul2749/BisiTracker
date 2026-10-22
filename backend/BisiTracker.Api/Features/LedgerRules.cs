@@ -29,6 +29,9 @@ public static class LedgerRules
         Require(group.Version == expected, "stale_version", "The group changed. Refresh the ledger before trying again.", 409);
 
     public static long Collected(ContributionDue due) => due.Payments.Where(x => x.Reversal is null).Sum(x => x.AmountPaise);
+    public static long PaidOut(Cycle cycle) => cycle.Payouts.Where(x => x.Reversal is null).Sum(x => x.AmountPaise);
+    public static void Open(Cycle cycle) => Require(cycle.ClosedAt is null,
+        "cycle_closed", "Reopen this cycle with a reason before changing its records.", 409);
 
     public static DateOnly Today(TimeProvider time, string zone = "Asia/Kolkata") =>
         DateOnly.FromDateTime(TimeZoneInfo.ConvertTime(time.GetUtcNow(), TimeZoneInfo.FindSystemTimeZoneById(zone)).DateTime);
@@ -52,10 +55,11 @@ public static class LedgerRules
         }).ToArray();
         var expected = dues.Sum(x => x.ExpectedPaise);
         var received = dues.Sum(x => x.PaidPaise);
-        var paidOut = cycle.Payouts.Sum(x => x.AmountPaise);
+        var paidOut = PaidOut(cycle);
         return new CycleView(cycle.Id, cycle.Number, cycle.DueDate, cycle.RecipientId, names[cycle.RecipientId],
-            expected, received, expected - received, Math.Max(0, (cycle.Payouts.Count > 0 ? paidOut : expected) - received),
+            expected, received, expected - received, Math.Max(0, (cycle.Payouts.Any(x => x.Reversal is null) ? paidOut : expected) - received),
             dues, cycle.Payouts.Count > 0 ? new PayoutSummary(paidOut, expected - paidOut, cycle.Payouts.OrderBy(x => x.RecordedAt)
-                .Select(p => new PayoutView(p.Id, p.AmountPaise, p.PaymentDate, p.FundingNote)).ToArray()) : null);
+                .Select(p => new PayoutView(p.Id, p.AmountPaise, p.PaymentDate, p.FundingNote, p.RecordedAt, p.Reversal?.Reason)).ToArray()) : null,
+            cycle.ClosedAt);
     }
 }

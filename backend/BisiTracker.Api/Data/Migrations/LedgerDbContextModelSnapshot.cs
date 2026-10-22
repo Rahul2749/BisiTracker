@@ -90,6 +90,9 @@ namespace BisiTracker.Api.Data.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
+                    b.Property<DateTimeOffset?>("ClosedAt")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<DateOnly>("DueDate")
                         .HasColumnType("date");
 
@@ -243,6 +246,35 @@ namespace BisiTracker.Api.Data.Migrations
                         {
                             t.HasCheckConstraint("CK_Payout_Amount", "\"AmountPaise\" > 0");
                         });
+                });
+
+            modelBuilder.Entity("BisiTracker.Api.Domain.PayoutReversal", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ActorId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<Guid>("PayoutId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Reason")
+                        .IsRequired()
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)");
+
+                    b.Property<DateTimeOffset>("RecordedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PayoutId")
+                        .IsUnique();
+
+                    b.ToTable("PayoutReversal");
                 });
 
             modelBuilder.Entity("BisiTracker.Api.Domain.ProcessedOperation", b =>
@@ -434,6 +466,15 @@ namespace BisiTracker.Api.Data.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("BisiTracker.Api.Domain.PayoutReversal", b =>
+                {
+                    b.HasOne("BisiTracker.Api.Domain.PayoutEntry", null)
+                        .WithOne("Reversal")
+                        .HasForeignKey("BisiTracker.Api.Domain.PayoutReversal", "PayoutId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("BisiTracker.Api.Domain.ProcessedOperation", b =>
                 {
                     b.HasOne("BisiTracker.Api.Domain.SavingsGroup", null)
@@ -465,6 +506,11 @@ namespace BisiTracker.Api.Data.Migrations
                 });
 
             modelBuilder.Entity("BisiTracker.Api.Domain.PaymentEntry", b =>
+                {
+                    b.Navigation("Reversal");
+                });
+
+            modelBuilder.Entity("BisiTracker.Api.Domain.PayoutEntry", b =>
                 {
                     b.Navigation("Reversal");
                 });

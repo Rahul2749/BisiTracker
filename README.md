@@ -2,7 +2,7 @@
 
 Organizer ledger for small, fixed-contribution monthly savings groups. Built with ASP.NET Core / .NET 10, PostgreSQL, and React Native / Expo with TypeScript.
 
-The first local milestone is implemented. This is a development prototype, with an English/Marathi organizer workflow. It records payments and payouts made outside the app. It does not collect, hold, verify, or transfer money.
+The local organizer workflow and ledger controls are implemented. This is a development prototype, with an English/Marathi interface. It records payments and payouts made outside the app. It does not collect, hold, verify, or transfer money.
 
 ## Run locally
 
@@ -38,11 +38,14 @@ Without an environment override, Android uses `http://10.0.2.2:5080`; web and th
 
 ## Implemented workflow
 
-- Create a draft with contribution amount, first month, due day, and members in payout order; add more members while it is a draft.
+- Create a draft with contribution amount, first month, due day, and members in payout order. Add, rename, remove, and reorder members before activation; canceling the editor discards unsaved changes.
 - Activate the group to generate monthly cycles with one recipient per cycle. Membership and contribution rules then freeze.
 - Record full or partial contributions with date, method, and an optional reference. View paid, partial, pending, and overdue states.
 - Correct a payment by recording a reasoned reversal; the original entry remains in history.
 - Record actual payouts in one or more installments. Expected pool, contributions received, payout recorded, and payout still owed stay distinct. Explain a funding gap if payouts exceed recorded contributions.
+- Reverse an incorrect payout with a reason, retain the original entry, and record a replacement.
+- Close a cycle after all contributions and the full payout are recorded. Closed cycles block payment and payout changes; reopen with an audited reason before correcting records.
+- Browse the complete audit history in pages. If the ledger changes between pages, refresh to restart from a consistent version.
 - Switch between English and Marathi, and inspect payment history and payout order.
 
 Rules for this milestone: INR amounts are integer paise; monthly cycles; due day 1–28; 2–50 members on activation; one organizer; one slot per member. Entries cannot have a future payment date. Lucky draws, existing-group imports, and changing an active group's membership are deferred.
@@ -99,7 +102,7 @@ Mobile release configuration is illustrated in `mobile/.env.example`. Use an HTT
 
 Money calculations use integer paise. Writes, audit events, and operation IDs are committed together. Retrying the same operation and payload returns the original result; reusing its ID with a different payload fails. Group versions detect conflicting writes. Ledger reads use a consistent database snapshot.
 
-The mobile app preserves an uncertain request for retry while that screen remains mounted. It does not yet persist requests across app restarts and has no offline ledger cache. A local Docker volume is persistence, not a backup. The app shows the latest 200 audit events; full history pagination is pending.
+The mobile app preserves an uncertain request for retry while that screen remains mounted. It does not yet persist requests across app restarts and has no offline ledger cache. A local Docker volume is persistence, not a backup. Audit history initially loads 50 entries and supports loading all older changes against the displayed ledger version. See [ledger control rules](docs/LEDGER_CONTROLS.md) for correction and close/reopen behavior.
 
 Production release still needs member sharing, durable offline storage, reminders, exports, backup/restore verification, account recovery and privacy workflows, device testing, pilot validation, and the regulatory review in the plan. See [implementation status](docs/IMPLEMENTATION_STATUS.md) and [phase plan](docs/IMPLEMENTATION_PLAN.md).
 
@@ -114,3 +117,5 @@ Fictional local demo; no money was moved.
 ![Payment checklist](docs/previews/payment-checklist.jpg)
 
 ![Marathi organizer ledger](docs/previews/ledger-marathi.jpg)
+
+Latest ledger controls: [closed cycle](docs/previews/closed-cycle-english.jpg), [Marathi cycle controls](docs/previews/closed-cycle-marathi.jpg), and [preserved payout correction](docs/previews/payout-correction.jpg).

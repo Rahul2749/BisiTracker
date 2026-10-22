@@ -1,7 +1,7 @@
 # BisiTracker implementation plan
 
 Prepared: 13 October 2026
-Status: First local milestone implemented across the foundation and core organizer workflows. See [implementation status](IMPLEMENTATION_STATUS.md) for delivered features, validation, release issues, and remaining work. The complete phased MVP is still in progress.
+Status: Local foundation, core organizer workflows, and ledger controls implemented, including draft edits, payout reversals, cycle close/reopen, and full history paging. See [implementation status](IMPLEMENTATION_STATUS.md) for validation, release issues, and remaining work. The complete phased MVP is still in progress.
 
 ## Product outcome
 

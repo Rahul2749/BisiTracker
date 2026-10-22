@@ -6,6 +6,7 @@ export type Group = components['schemas']['GroupSummary'];
 export type Due = components['schemas']['DueView'];
 export type Cycle = components['schemas']['CycleView'];
 export type Payment = components['schemas']['PaymentView'];
+export type Payout = components['schemas']['PayoutView'];
 export type CreateGroup = components['schemas']['CreateGroupRequest'];
 export type RecordPayment = components['schemas']['RecordPaymentRequest'];
 export type RecordPayout = components['schemas']['RecordPayoutRequest'];
@@ -43,12 +44,27 @@ export function createApi(baseUrl: string, fetcher?: typeof fetch) {
     async me() { return unwrap(await client.GET('/api/me')); },
     async groups(page = 1) { return unwrap(await client.GET('/api/groups', { params: { query: { page, pageSize: 20 } } })); },
     async ledger(id: string) { return unwrap(await client.GET('/api/groups/{id}', { params: { path: { id } } })); },
+    async history(id: string, page: number, expectedVersion: number) {
+      return unwrap(await client.GET('/api/groups/{id}/history', { params: { path: { id }, query: { page, pageSize: 50, expectedVersion } } }));
+    },
     async create(body: CreateGroup) { return unwrap(await client.POST('/api/groups', { body })); },
     async addMember(id: string, body: components['schemas']['AddMemberRequest']) {
       return unwrap(await client.POST('/api/groups/{id}/members', { params: { path: { id } }, body }));
     },
     async activate(id: string, body: components['schemas']['ActivateRequest']) {
       return unwrap(await client.POST('/api/groups/{id}/activate', { params: { path: { id } }, body }));
+    },
+    async editMembers(id: string, body: components['schemas']['EditMembersRequest']) {
+      return unwrap(await client.POST('/api/groups/{id}/members/edit', { params: { path: { id } }, body }));
+    },
+    async reversePayout(id: string, payoutId: string, body: components['schemas']['ReversePayoutRequest']) {
+      return unwrap(await client.POST('/api/groups/{id}/payouts/{payoutId}/reverse', { params: { path: { id, payoutId } }, body }));
+    },
+    async closeCycle(id: string, cycleId: string, body: components['schemas']['CloseCycleRequest']) {
+      return unwrap(await client.POST('/api/groups/{id}/cycles/{cycleId}/close', { params: { path: { id, cycleId } }, body }));
+    },
+    async reopenCycle(id: string, cycleId: string, body: components['schemas']['ReopenCycleRequest']) {
+      return unwrap(await client.POST('/api/groups/{id}/cycles/{cycleId}/reopen', { params: { path: { id, cycleId } }, body }));
     },
     async payment(id: string, cycleId: string, memberId: string, body: RecordPayment) {
       return unwrap(await client.POST('/api/groups/{id}/cycles/{cycleId}/members/{memberId}/payments', { params: { path: { id, cycleId, memberId } }, body }));

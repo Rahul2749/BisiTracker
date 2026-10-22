@@ -12,7 +12,7 @@ public sealed class LedgerService(LedgerDbContext db, TimeProvider time)
     private IQueryable<SavingsGroup> Aggregate => db.Groups
         .Include(x => x.Round).ThenInclude(x => x.Members)
         .Include(x => x.Round).ThenInclude(x => x.Cycles).ThenInclude(x => x.Dues).ThenInclude(x => x.Payments).ThenInclude(x => x.Reversal)
-        .Include(x => x.Round).ThenInclude(x => x.Cycles).ThenInclude(x => x.Payouts).AsSplitQuery();
+        .Include(x => x.Round).ThenInclude(x => x.Cycles).ThenInclude(x => x.Payouts).ThenInclude(x => x.Reversal).AsSplitQuery();
 
     private async Task<SavingsGroup> Owned(string owner, Guid id, CancellationToken ct) =>
         await Aggregate.SingleOrDefaultAsync(x => x.Id == id && x.OwnerId == owner, ct)
@@ -33,15 +33,33 @@ public sealed class LedgerService(LedgerDbContext db, TimeProvider time)
         await using var snapshot = await db.Database.BeginTransactionAsync(System.Data.IsolationLevel.RepeatableRead, ct);
         var group = await Owned(owner, id, ct);
         var history = await db.AuditEvents.AsNoTracking().Where(x => x.GroupId == id)
-            .OrderByDescending(x => x.RecordedAt).ThenBy(x => x.Id).Take(200)
+            .OrderByDescending(x => x.RecordedAt).ThenBy(x => x.Id).Take(51)
             .Select(x => new AuditView(x.Id, x.Kind, x.Description, x.RecordedAt)).ToArrayAsync(ct);
         var view = new LedgerView(group.Id, group.Name, group.Status, group.Version, group.Currency, group.Language,
             group.Round.ContributionPaise, group.Round.DueDay, group.Round.StartMonth, group.UpdatedAt,
             group.Round.Members.OrderBy(x => x.Position).Select(x => new MemberView(x.Id, x.Name, x.Position)).ToArray(),
             group.Round.Cycles.OrderBy(x => x.Number).Select(x => LedgerRules.Cycle(x, group.Round,
-                LedgerRules.Today(time, group.TimeZone))).ToArray(), history);
+                LedgerRules.Today(time, group.TimeZone))).ToArray(), history.Take(50).ToArray(), history.Length > 50 ? 2 : null);
         await snapshot.CommitAsync(ct);
         return view;
+    }
+
+    public async Task<AuditPage> History(string owner, Guid id, int page, int pageSize, long? expectedVersion, CancellationToken ct)
+    {
+        LedgerRules.Require(page is >= 1 and <= 1_000_000 && pageSize is >= 1 and <= 100,
+            "pagination", "Use page 1–1000000 and page size 1–100.");
+        LedgerRules.Require(page == 1 || expectedVersion.HasValue,
+            "history_version", "Supply the ledger version when loading older history.");
+        await using var snapshot = await db.Database.BeginTransactionAsync(System.Data.IsolationLevel.RepeatableRead, ct);
+        var group = await db.Groups.AsNoTracking().SingleOrDefaultAsync(x => x.Id == id && x.OwnerId == owner, ct)
+            ?? throw new LedgerException(404, "not_found", "Group not found.");
+        // A changed ledger invalidates page offsets instead of silently skipping or repeating events.
+        if (expectedVersion.HasValue) LedgerRules.Version(group, expectedVersion.Value);
+        var items = await db.AuditEvents.AsNoTracking().Where(x => x.GroupId == id)
+            .OrderByDescending(x => x.RecordedAt).ThenBy(x => x.Id).Skip((page - 1) * pageSize).Take(pageSize + 1)
+            .Select(x => new AuditView(x.Id, x.Kind, x.Description, x.RecordedAt)).ToArrayAsync(ct);
+        await snapshot.CommitAsync(ct);
+        return new AuditPage(items.Take(pageSize).ToArray(), items.Length > pageSize ? page + 1 : null, group.Version);
     }
 
     private async Task<MutationResult> Execute(string owner, Guid operationId, string kind, object payload,
@@ -153,6 +171,42 @@ public sealed class LedgerService(LedgerDbContext db, TimeProvider time)
             return (group, null);
         }, ct);
 
+    public Task<MutationResult> EditMembers(string owner, Guid id, EditMembersRequest request, CancellationToken ct) =>
+        Execute(owner, request.OperationId, "edit_members", new { id, request }, async () =>
+        {
+            var group = await Owned(owner, id, ct);
+            LedgerRules.Version(group, request.ExpectedVersion);
+            LedgerRules.Require(group.Status == "Draft", "rules_frozen", "Members are fixed after a round starts.", 409);
+            LedgerRules.Require(request.Members is not null && request.Members.Length <= 50,
+                "members", "Supply up to 50 existing draft members in payout order.");
+            var members = group.Round.Members.ToDictionary(x => x.Id);
+            var edits = request.Members!;
+            LedgerRules.Require(edits.All(x => x is not null && members.ContainsKey(x.Id)) &&
+                edits.Select(x => x.Id).Distinct().Count() == edits.Length,
+                "members", "Each member must belong to this draft and appear only once.");
+            var names = edits.Select(x => LedgerRules.Text(x.Name, "Member name", 80)).ToArray();
+            var before = string.Join(", ", members.Values.OrderBy(x => x.Position).Select(x => $"{x.Position}. {x.Name}"));
+            // Reserve temporary positions inside this transaction so swaps respect the unique index.
+            // Updating the group version here also rejects a concurrent activation/edit before removal.
+            group.Version++;
+            foreach (var member in members.Values) member.Position = -member.Position;
+            await db.SaveChangesAsync(ct);
+            var retained = edits.Select(x => x.Id).ToHashSet();
+            foreach (var member in members.Values.Where(x => !retained.Contains(x.Id)))
+            {
+                group.Round.Members.Remove(member);
+                db.Remove(member);
+            }
+            for (var i = 0; i < edits.Length; i++)
+            {
+                members[edits[i].Id].Name = names[i];
+                members[edits[i].Id].Position = i + 1;
+            }
+            var after = string.Join(", ", group.Round.Members.OrderBy(x => x.Position).Select(x => $"{x.Position}. {x.Name}"));
+            Audit(group, owner, "DraftMembersEdited", $"Draft members and payout order changed from [{before}] to [{after}].");
+            return (group, null);
+        }, ct);
+
     public Task<MutationResult> Payment(string owner, Guid id, Guid cycleId, Guid memberId,
         RecordPaymentRequest request, CancellationToken ct) =>
         Execute(owner, request.OperationId, "payment", new { id, cycleId, memberId, request }, async () =>
@@ -162,6 +216,7 @@ public sealed class LedgerService(LedgerDbContext db, TimeProvider time)
                 ?? throw new LedgerException(404, "not_found", "Cycle not found.");
             var due = cycle.Dues.SingleOrDefault(x => x.MemberId == memberId)
                 ?? throw new LedgerException(404, "not_found", "Member not found in this cycle.");
+            LedgerRules.Open(cycle);
             LedgerRules.Require(request.AmountPaise > 0 && request.AmountPaise <= due.AmountPaise - LedgerRules.Collected(due),
                 "overpayment", "Amount must be positive and no greater than this member's outstanding contribution.", 409);
             LedgerRules.PaymentDate(request.PaymentDate, time);
@@ -189,6 +244,7 @@ public sealed class LedgerService(LedgerDbContext db, TimeProvider time)
             var cycle = group.Round.Cycles.SingleOrDefault(x => x.Dues.Any(d => d.Payments.Any(p => p.Id == paymentId)))
                 ?? throw new LedgerException(404, "not_found", "Payment not found.");
             var payment = cycle.Dues.SelectMany(x => x.Payments).Single(x => x.Id == paymentId);
+            LedgerRules.Open(cycle);
             LedgerRules.Require(payment.Reversal is null, "already_reversed", "This payment was already reversed.", 409);
             var reversal = new PaymentReversal
             {
@@ -210,8 +266,9 @@ public sealed class LedgerService(LedgerDbContext db, TimeProvider time)
             var cycle = group.Round.Cycles.SingleOrDefault(x => x.Id == cycleId)
                 ?? throw new LedgerException(404, "not_found", "Cycle not found.");
             var expected = cycle.Dues.Sum(x => x.AmountPaise);
+            LedgerRules.Open(cycle);
             var collected = cycle.Dues.Sum(LedgerRules.Collected);
-            var paidOut = cycle.Payouts.Sum(x => x.AmountPaise);
+            var paidOut = LedgerRules.PaidOut(cycle);
             LedgerRules.Require(request.AmountPaise > 0 && request.AmountPaise <= expected - paidOut,
                 "payout_amount", "Payout must be positive and no greater than the remaining payout entitlement.");
             LedgerRules.PaymentDate(request.PaymentDate, time);
@@ -229,5 +286,59 @@ public sealed class LedgerService(LedgerDbContext db, TimeProvider time)
             var name = group.Round.Members.Single(x => x.Id == cycle.RecipientId).Name;
             Audit(group, owner, "PayoutRecorded", $"₹{request.AmountPaise / 100m:0.00} payout recorded for {name} in cycle {cycle.Number}.", cycleId);
             return (group, payout.Id);
+        }, ct);
+
+    public Task<MutationResult> ReversePayout(string owner, Guid id, Guid payoutId, ReversePayoutRequest request, CancellationToken ct) =>
+        Execute(owner, request.OperationId, "reverse_payout", new { id, payoutId, request }, async () =>
+        {
+            var group = await Owned(owner, id, ct);
+            LedgerRules.Version(group, request.ExpectedVersion);
+            var cycle = group.Round.Cycles.SingleOrDefault(x => x.Payouts.Any(p => p.Id == payoutId))
+                ?? throw new LedgerException(404, "not_found", "Payout not found.");
+            LedgerRules.Open(cycle);
+            var payout = cycle.Payouts.Single(x => x.Id == payoutId);
+            LedgerRules.Require(payout.Reversal is null, "already_reversed", "This payout was already reversed.", 409);
+            var reversal = new PayoutReversal
+            {
+                PayoutId = payout.Id, Reason = LedgerRules.Text(request.Reason, "Correction reason", 300),
+                ActorId = owner, RecordedAt = time.GetUtcNow()
+            };
+            payout.Reversal = reversal;
+            db.Add(reversal);
+            group.Version++;
+            Audit(group, owner, "PayoutReversed", $"₹{payout.AmountPaise / 100m:0.00} payout reversed in cycle {cycle.Number}: {reversal.Reason}", cycle.Id);
+            return (group, reversal.Id);
+        }, ct);
+
+    public Task<MutationResult> CloseCycle(string owner, Guid id, Guid cycleId, CloseCycleRequest request, CancellationToken ct) =>
+        Execute(owner, request.OperationId, "close_cycle", new { id, cycleId, request }, async () =>
+        {
+            var group = await Owned(owner, id, ct);
+            LedgerRules.Version(group, request.ExpectedVersion);
+            var cycle = group.Round.Cycles.SingleOrDefault(x => x.Id == cycleId)
+                ?? throw new LedgerException(404, "not_found", "Cycle not found.");
+            LedgerRules.Open(cycle);
+            var expected = cycle.Dues.Sum(x => x.AmountPaise);
+            LedgerRules.Require(cycle.Dues.Sum(LedgerRules.Collected) == expected && LedgerRules.PaidOut(cycle) == expected,
+                "cycle_unsettled", "Record all contributions and the full payout before closing this cycle.", 409);
+            cycle.ClosedAt = time.GetUtcNow();
+            group.Version++;
+            Audit(group, owner, "CycleClosed", $"Cycle {cycle.Number} closed after all contributions and the full payout were recorded.", cycle.Id);
+            return (group, cycle.Id);
+        }, ct);
+
+    public Task<MutationResult> ReopenCycle(string owner, Guid id, Guid cycleId, ReopenCycleRequest request, CancellationToken ct) =>
+        Execute(owner, request.OperationId, "reopen_cycle", new { id, cycleId, request }, async () =>
+        {
+            var group = await Owned(owner, id, ct);
+            LedgerRules.Version(group, request.ExpectedVersion);
+            var cycle = group.Round.Cycles.SingleOrDefault(x => x.Id == cycleId)
+                ?? throw new LedgerException(404, "not_found", "Cycle not found.");
+            LedgerRules.Require(cycle.ClosedAt.HasValue, "cycle_open", "This cycle is already open.", 409);
+            var reason = LedgerRules.Text(request.Reason, "Reopening reason", 300);
+            cycle.ClosedAt = null;
+            group.Version++;
+            Audit(group, owner, "CycleReopened", $"Cycle {cycle.Number} reopened: {reason}", cycle.Id);
+            return (group, cycle.Id);
         }, ct);
 }

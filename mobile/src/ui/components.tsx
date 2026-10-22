@@ -6,10 +6,10 @@ export const colors = {
   lightGreen: '#E7EFE6', line: '#DFE4DA', orange: '#B7602D', lightOrange: '#FFF0DD', red: '#AC3C35', lightRed: '#FDECE8',
 };
 
-export function Button({ label, onPress, busy = false, disabled = false, kind = 'primary' }: {
-  label: string; onPress: () => void; busy?: boolean; disabled?: boolean; kind?: 'primary' | 'secondary' | 'quiet' | 'danger';
+export function Button({ label, accessibilityLabel, onPress, busy = false, disabled = false, kind = 'primary' }: {
+  label: string; accessibilityLabel?: string; onPress: () => void; busy?: boolean; disabled?: boolean; kind?: 'primary' | 'secondary' | 'quiet' | 'danger';
 }) {
-  return <Pressable accessibilityRole="button" accessibilityLabel={label} accessibilityState={{ disabled: disabled || busy, busy }}
+  return <Pressable accessibilityRole="button" accessibilityLabel={accessibilityLabel ?? label} accessibilityState={{ disabled: disabled || busy, busy }}
     disabled={disabled || busy} onPress={onPress} style={({ pressed }) => [s.button,
       kind === 'primary' && s.primary, kind === 'secondary' && s.secondary, kind === 'quiet' && s.quiet,
       kind === 'danger' && s.danger, (disabled || busy) && { opacity: .55 }, pressed && { opacity: .75 }]}>

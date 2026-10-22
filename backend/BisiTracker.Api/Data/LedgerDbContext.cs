@@ -60,7 +60,9 @@ public sealed class LedgerDbContext(DbContextOptions<LedgerDbContext> options) :
         {
             b.ToTable(t => t.HasCheckConstraint("CK_Payout_Amount", "\"AmountPaise\" > 0"));
             b.Property(x => x.FundingNote).HasMaxLength(300);
+            b.HasOne(x => x.Reversal).WithOne().HasForeignKey<PayoutReversal>(x => x.PayoutId).OnDelete(DeleteBehavior.Restrict);
         });
+        model.Entity<PayoutReversal>().Property(x => x.Reason).HasMaxLength(300);
         model.Entity<AuditEvent>(b =>
         {
             b.HasIndex(x => new { x.GroupId, x.RecordedAt });

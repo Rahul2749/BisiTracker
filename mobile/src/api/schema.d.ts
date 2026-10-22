@@ -134,6 +134,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/groups/{id}/history": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["GetHistory"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/groups/{id}/members": {
         parameters: {
             query?: never;
@@ -160,6 +176,22 @@ export interface paths {
         get?: never;
         put?: never;
         post: operations["ActivateGroup"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/groups/{id}/members/edit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["EditDraftMembers"];
         delete?: never;
         options?: never;
         head?: never;
@@ -214,6 +246,54 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/groups/{id}/payouts/{payoutId}/reverse": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["ReversePayout"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/groups/{id}/cycles/{cycleId}/close": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["CloseCycle"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/groups/{id}/cycles/{cycleId}/reopen": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["ReopenCycle"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -231,6 +311,13 @@ export interface components {
             expectedVersion: number;
             name: string;
         };
+        AuditPage: {
+            items: components["schemas"]["AuditView"][];
+            /** Format: int32 */
+            nextPage: null | number;
+            /** Format: int64 */
+            version: number;
+        };
         AuditView: {
             /** Format: uuid */
             id: string;
@@ -238,6 +325,12 @@ export interface components {
             description: string;
             /** Format: date-time */
             recordedAt: string;
+        };
+        CloseCycleRequest: {
+            /** Format: uuid */
+            operationId: string;
+            /** Format: int64 */
+            expectedVersion: number;
         };
         CreateGroupRequest: {
             /** Format: uuid */
@@ -272,6 +365,8 @@ export interface components {
             payoutShortfallPaise: number;
             dues: components["schemas"]["DueView"][];
             payout: null | components["schemas"]["PayoutSummary"];
+            /** Format: date-time */
+            closedAt: null | string;
         };
         DevelopmentSession: {
             accessToken: string;
@@ -281,6 +376,11 @@ export interface components {
         };
         DevelopmentSignIn: {
             profile: string;
+        };
+        DraftMemberEdit: {
+            /** Format: uuid */
+            id: string;
+            name: string;
         };
         DueView: {
             /** Format: uuid */
@@ -297,6 +397,13 @@ export interface components {
             status: string;
             isOverdue: boolean;
             payments: components["schemas"]["PaymentView"][];
+        };
+        EditMembersRequest: {
+            /** Format: uuid */
+            operationId: string;
+            /** Format: int64 */
+            expectedVersion: number;
+            members: components["schemas"]["DraftMemberEdit"][];
         };
         GroupSummary: {
             /** Format: uuid */
@@ -335,6 +442,8 @@ export interface components {
             members: components["schemas"]["MemberView"][];
             cycles: components["schemas"]["CycleView"][];
             history: components["schemas"]["AuditView"][];
+            /** Format: int32 */
+            historyNextPage: null | number;
         };
         MemberView: {
             /** Format: uuid */
@@ -380,6 +489,9 @@ export interface components {
             /** Format: date */
             paymentDate: string;
             fundingNote: null | string;
+            /** Format: date-time */
+            recordedAt: string;
+            reversalReason: null | string;
         };
         RecordPaymentRequest: {
             /** Format: uuid */
@@ -402,7 +514,21 @@ export interface components {
             paymentDate: string;
             fundingNote: null | string;
         };
+        ReopenCycleRequest: {
+            /** Format: uuid */
+            operationId: string;
+            /** Format: int64 */
+            expectedVersion: number;
+            reason: string;
+        };
         ReversePaymentRequest: {
+            /** Format: uuid */
+            operationId: string;
+            /** Format: int64 */
+            expectedVersion: number;
+            reason: string;
+        };
+        ReversePayoutRequest: {
             /** Format: uuid */
             operationId: string;
             /** Format: int64 */
@@ -531,6 +657,32 @@ export interface operations {
             };
         };
     };
+    GetHistory: {
+        parameters: {
+            query?: {
+                page?: number;
+                pageSize?: number;
+                expectedVersion?: number;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuditPage"];
+                };
+            };
+        };
+    };
     AddMember: {
         parameters: {
             query?: never;
@@ -569,6 +721,32 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": components["schemas"]["ActivateRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MutationResult"];
+                };
+            };
+        };
+    };
+    EditDraftMembers: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EditMembersRequest"];
             };
         };
         responses: {
@@ -651,6 +829,87 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": components["schemas"]["RecordPayoutRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MutationResult"];
+                };
+            };
+        };
+    };
+    ReversePayout: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                payoutId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReversePayoutRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MutationResult"];
+                };
+            };
+        };
+    };
+    CloseCycle: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                cycleId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CloseCycleRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MutationResult"];
+                };
+            };
+        };
+    };
+    ReopenCycle: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                cycleId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReopenCycleRequest"];
             };
         };
         responses: {

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Text, View } from 'react-native';
-import { Cycle, Due, Ledger, Payment } from '../api/client';
+import { Cycle, Due, Ledger, Payment, Payout } from '../api/client';
 import { api } from '../auth/session';
 import { translator } from '../lib/i18n';
 import { indiaDate, inputRupees, parseRupees, rupees, validDate } from '../lib/money';
@@ -29,7 +29,8 @@ export function PaymentDialog({ group, cycle, due, t, onClose, onSaved, onRevers
   }
   return <Dialog title={due.name} closeLabel={t('close')} busy={command.busy || command.locked} onClose={onClose}>
     <Text style={s.body}>{t('received')}: {rupees(due.paidPaise)} · {t('balance')}: {rupees(due.outstandingPaise)}</Text>
-    {due.outstandingPaise > 0 && <><Field label={t('amount')} value={amount} onChangeText={setAmount} keyboardType="decimal-pad" editable={!command.locked} />
+    {cycle.closedAt && <Notice>{t('closedHelp')}</Notice>}
+    {!cycle.closedAt && due.outstandingPaise > 0 && <><Field label={t('amount')} value={amount} onChangeText={setAmount} keyboardType="decimal-pad" editable={!command.locked} />
       <Field label={t('paymentDate')} value={date} onChangeText={setDate} maxLength={10} autoCapitalize="none" editable={!command.locked} />
       <Text style={s.label}>{t('method')}</Text><View style={{ flexDirection: 'row', gap: 6, flexWrap: 'wrap' }}>
         {(['Cash', 'UPI', 'Bank', 'Other'] as const).map(value => <Button key={value} label={t(({ Cash: 'cash', UPI: 'upi', Bank: 'bank', Other: 'other' } as const)[value])}
@@ -42,7 +43,7 @@ export function PaymentDialog({ group, cycle, due, t, onClose, onSaved, onRevers
     {due.payments.map(payment => <View key={payment.id} style={{ gap: 7 }}>
       <View style={s.between}><Text style={[s.heading, payment.reversalReason !== null && { textDecorationLine: 'line-through', opacity: .6 }]}>{rupees(payment.amountPaise)}</Text><Text style={s.small}>{payment.paymentDate} · {payment.method}</Text></View>
       {payment.reference && <Text style={s.small}>{payment.reference}</Text>}
-      {payment.reversalReason !== null ? <Text style={s.small}>{t('reversed')}: {payment.reversalReason}</Text> : <Button label={t('reverse')} kind="quiet" disabled={command.busy || command.locked} onPress={() => onReverse(payment)} />}
+      {payment.reversalReason !== null ? <Text style={s.small}>{t('reversed')}: {payment.reversalReason}</Text> : !cycle.closedAt && <Button label={t('reverse')} kind="quiet" disabled={command.busy || command.locked} onPress={() => onReverse(payment)} />}
     </View>)}
   </Dialog>;
 }
@@ -104,5 +105,80 @@ export function AddMemberDialog({ group, t, onClose, onSaved }: Shared) {
   return <Dialog title={t('addMember')} closeLabel={t('cancel')} busy={command.busy || command.locked} onClose={onClose}>
     <Field label={t('memberName')} value={name} onChangeText={setName} maxLength={80} editable={!command.locked} />
     <Feedback command={command} t={t} /><Button label={command.confirmed ? t('refresh') : command.locked ? t('retry') : t('addMember')} busy={command.busy} onPress={save} />
+  </Dialog>;
+}
+
+export function EditMembersDialog({ group, t, onClose, onSaved }: Shared) {
+  const [members, setMembers] = useState(group.members.map(x => ({ id: x.id, name: x.name })));
+  const command = useCommand<Result>();
+  function move(index: number, direction: number) {
+    setMembers(current => {
+      const next = [...current];
+      const destination = index + direction;
+      if (destination < 0 || destination >= next.length) return current;
+      [next[index], next[destination]] = [next[destination], next[index]];
+      return next;
+    });
+  }
+  function save() {
+    if (members.some(x => !x.name.trim() || x.name.trim().length > 80)) { command.setError(t('required')); return; }
+    const edited = members.map(x => ({ ...x, name: x.name.trim() }));
+    void command.run(operationId => () => api.editMembers(group.id, { operationId, expectedVersion: group.version, members: edited }),
+      async () => { await onSaved(); onClose(); });
+  }
+  return <Dialog title={t('editMembers')} closeLabel={t('cancel')} busy={command.busy || command.locked} onClose={onClose}>
+    <Notice>{t('editMembersHelp')}</Notice>
+    {members.length === 0 && <Text style={s.body}>{t('emptyMembers')}</Text>}
+    {members.map((member, index) => <View key={member.id} style={{ gap: 8 }}>
+      <Field label={`${t('memberName')} ${index + 1}`} value={member.name} maxLength={80} editable={!command.locked}
+        onChangeText={name => setMembers(current => current.map(x => x.id === member.id ? { ...x, name } : x))} />
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+        <Button label="↑" accessibilityLabel={`${t('moveUp')} ${member.name}`} kind="secondary" disabled={command.locked || index === 0} onPress={() => move(index, -1)} />
+        <Button label="↓" accessibilityLabel={`${t('moveDown')} ${member.name}`} kind="secondary" disabled={command.locked || index === members.length - 1} onPress={() => move(index, 1)} />
+        <Button label={t('removeMember')} accessibilityLabel={`${t('removeMember')} ${member.name}`} kind="danger" disabled={command.locked}
+          onPress={() => setMembers(current => current.filter(x => x.id !== member.id))} />
+      </View>
+    </View>)}
+    <Feedback command={command} t={t} /><Button label={command.confirmed ? t('refresh') : command.locked ? t('retry') : t('saveMembers')} busy={command.busy} onPress={save} />
+  </Dialog>;
+}
+
+export function ReversePayoutDialog({ group, payout, t, onClose, onSaved }: Shared & { payout: Payout }) {
+  const cycle = group.cycles.find(x => x.payout?.entries.some(entry => entry.id === payout.id));
+  const [reason, setReason] = useState('');
+  const command = useCommand<Result>();
+  function save() {
+    if (!reason.trim() || reason.trim().length > 300) { command.setError(t('reasonRequired')); return; }
+    void command.run(operationId => () => api.reversePayout(group.id, payout.id, { operationId, expectedVersion: group.version, reason: reason.trim() }),
+      async () => { await onSaved(); onClose(); });
+  }
+  return <Dialog title={t('payoutCorrectionTitle')} closeLabel={t('cancel')} busy={command.busy || command.locked} onClose={onClose}>
+    {cycle && <Text style={s.label}>{cycle.recipientName} · {t('cycle')} {cycle.number}</Text>}
+    <Text style={s.heading}>{rupees(payout.amountPaise)} · {payout.paymentDate}</Text><Notice>{t('payoutCorrectionHelp')}</Notice>
+    <Field label={t('reason')} value={reason} onChangeText={setReason} multiline maxLength={300} editable={!command.locked} />
+    <Feedback command={command} t={t} /><Button label={command.confirmed ? t('refresh') : command.locked ? t('retry') : t('saveCorrection')} busy={command.busy} onPress={save} />
+  </Dialog>;
+}
+
+export function CycleStateDialog({ group, cycle, t, onClose, onSaved }: Shared & { cycle: Cycle }) {
+  const reopening = cycle.closedAt !== null;
+  const [reason, setReason] = useState('');
+  const command = useCommand<Result>();
+  const canClose = cycle.outstandingPaise === 0 && cycle.payout?.outstandingPaise === 0;
+  function save() {
+    if (reopening && (!reason.trim() || reason.trim().length > 300)) { command.setError(t('reasonRequired')); return; }
+    void command.run(operationId => () => reopening
+      ? api.reopenCycle(group.id, cycle.id, { operationId, expectedVersion: group.version, reason: reason.trim() })
+      : api.closeCycle(group.id, cycle.id, { operationId, expectedVersion: group.version }),
+    async () => { await onSaved(); onClose(); });
+  }
+  return <Dialog title={t(reopening ? 'reopenCycle' : 'closeCycle')} closeLabel={t('cancel')} busy={command.busy || command.locked} onClose={onClose}>
+    <Text style={s.heading}>{t('cycle')} {cycle.number} · {cycle.recipientName}</Text>
+    <Notice>{t(reopening ? 'reopenCycleHelp' : 'closeCycleHelp')}</Notice>
+    <Text style={s.body}>{t('outstanding')}: {rupees(cycle.outstandingPaise)}</Text>
+    <Text style={s.body}>{t('payoutRemaining')}: {rupees(cycle.payout?.outstandingPaise ?? cycle.expectedPaise)}</Text>
+    {reopening && <Field label={t('reopenReason')} value={reason} onChangeText={setReason} multiline maxLength={300} editable={!command.locked} />}
+    <Feedback command={command} t={t} /><Button label={command.confirmed ? t('refresh') : command.locked ? t('retry') : t(reopening ? 'reopenCycle' : 'closeCycle')}
+      busy={command.busy} disabled={!reopening && !canClose} onPress={save} />
   </Dialog>;
 }

@@ -40,6 +40,7 @@ public sealed class Cycle
     public int Number { get; set; }
     public DateOnly DueDate { get; set; }
     public Guid RecipientId { get; set; }
+    public DateTimeOffset? ClosedAt { get; set; }
     public List<ContributionDue> Dues { get; set; } = [];
     public List<PayoutEntry> Payouts { get; set; } = [];
 }
@@ -82,6 +83,16 @@ public sealed class PayoutEntry
     public long AmountPaise { get; set; }
     public DateOnly PaymentDate { get; set; }
     public string? FundingNote { get; set; }
+    public string ActorId { get; set; } = "";
+    public DateTimeOffset RecordedAt { get; set; } = DateTimeOffset.UtcNow;
+    public PayoutReversal? Reversal { get; set; }
+}
+
+public sealed class PayoutReversal
+{
+    public Guid Id { get; set; } = Guid.NewGuid();
+    public Guid PayoutId { get; set; }
+    public string Reason { get; set; } = "";
     public string ActorId { get; set; } = "";
     public DateTimeOffset RecordedAt { get; set; } = DateTimeOffset.UtcNow;
 }

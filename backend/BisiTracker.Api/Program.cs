@@ -79,12 +79,17 @@ api.MapGet("/groups", (HttpContext context, LedgerService ledger, CancellationTo
     ledger.List(context.User.Owner(), page, pageSize, ct)).WithName("ListGroups");
 api.MapGet("/groups/{id:guid}", (Guid id, HttpContext context, LedgerService ledger, CancellationToken ct) =>
     ledger.Get(context.User.Owner(), id, ct)).WithName("GetLedger");
+api.MapGet("/groups/{id:guid}/history", (Guid id, HttpContext context, LedgerService ledger, CancellationToken ct,
+    int page = 1, int pageSize = 50, long? expectedVersion = null) =>
+    ledger.History(context.User.Owner(), id, page, pageSize, expectedVersion, ct)).WithName("GetHistory");
 api.MapPost("/groups", (CreateGroupRequest request, HttpContext context, LedgerService ledger, CancellationToken ct) =>
     ledger.Create(context.User.Owner(), request, ct)).WithName("CreateGroup");
 api.MapPost("/groups/{id:guid}/members", (Guid id, AddMemberRequest request, HttpContext context, LedgerService ledger, CancellationToken ct) =>
     ledger.AddMember(context.User.Owner(), id, request, ct)).WithName("AddMember");
 api.MapPost("/groups/{id:guid}/activate", (Guid id, ActivateRequest request, HttpContext context, LedgerService ledger, CancellationToken ct) =>
     ledger.Activate(context.User.Owner(), id, request, ct)).WithName("ActivateGroup");
+api.MapPost("/groups/{id:guid}/members/edit", (Guid id, EditMembersRequest request, HttpContext context, LedgerService ledger, CancellationToken ct) =>
+    ledger.EditMembers(context.User.Owner(), id, request, ct)).WithName("EditDraftMembers");
 api.MapPost("/groups/{id:guid}/cycles/{cycleId:guid}/members/{memberId:guid}/payments",
     (Guid id, Guid cycleId, Guid memberId, RecordPaymentRequest request, HttpContext context, LedgerService ledger, CancellationToken ct) =>
         ledger.Payment(context.User.Owner(), id, cycleId, memberId, request, ct)).WithName("RecordPayment");
@@ -93,6 +98,12 @@ api.MapPost("/groups/{id:guid}/payments/{paymentId:guid}/reverse",
         ledger.Reverse(context.User.Owner(), id, paymentId, request, ct)).WithName("ReversePayment");
 api.MapPost("/groups/{id:guid}/cycles/{cycleId:guid}/payout", (Guid id, Guid cycleId, RecordPayoutRequest request,
     HttpContext context, LedgerService ledger, CancellationToken ct) => ledger.Payout(context.User.Owner(), id, cycleId, request, ct)).WithName("RecordPayout");
+api.MapPost("/groups/{id:guid}/payouts/{payoutId:guid}/reverse", (Guid id, Guid payoutId, ReversePayoutRequest request,
+    HttpContext context, LedgerService ledger, CancellationToken ct) => ledger.ReversePayout(context.User.Owner(), id, payoutId, request, ct)).WithName("ReversePayout");
+api.MapPost("/groups/{id:guid}/cycles/{cycleId:guid}/close", (Guid id, Guid cycleId, CloseCycleRequest request,
+    HttpContext context, LedgerService ledger, CancellationToken ct) => ledger.CloseCycle(context.User.Owner(), id, cycleId, request, ct)).WithName("CloseCycle");
+api.MapPost("/groups/{id:guid}/cycles/{cycleId:guid}/reopen", (Guid id, Guid cycleId, ReopenCycleRequest request,
+    HttpContext context, LedgerService ledger, CancellationToken ct) => ledger.ReopenCycle(context.User.Owner(), id, cycleId, request, ct)).WithName("ReopenCycle");
 
 if (app.Configuration.GetValue<bool>("Database:MigrateOnStartup"))
 {

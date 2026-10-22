@@ -186,6 +186,63 @@
         }
       }
     },
+    "/api/groups/{id}/history": {
+      "get": {
+        "tags": [
+          "BisiTracker.Api"
+        ],
+        "operationId": "GetHistory",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 1
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 50
+            }
+          },
+          {
+            "name": "expectedVersion",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuditPage"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/groups/{id}/members": {
       "post": {
         "tags": [
@@ -249,6 +306,47 @@
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/ActivateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MutationResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/groups/{id}/members/edit": {
+      "post": {
+        "tags": [
+          "BisiTracker.Api"
+        ],
+        "operationId": "EditDraftMembers",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EditMembersRequest"
               }
             }
           },
@@ -426,6 +524,156 @@
           }
         }
       }
+    },
+    "/api/groups/{id}/payouts/{payoutId}/reverse": {
+      "post": {
+        "tags": [
+          "BisiTracker.Api"
+        ],
+        "operationId": "ReversePayout",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "payoutId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReversePayoutRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MutationResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/groups/{id}/cycles/{cycleId}/close": {
+      "post": {
+        "tags": [
+          "BisiTracker.Api"
+        ],
+        "operationId": "CloseCycle",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "cycleId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CloseCycleRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MutationResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/groups/{id}/cycles/{cycleId}/reopen": {
+      "post": {
+        "tags": [
+          "BisiTracker.Api"
+        ],
+        "operationId": "ReopenCycle",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "cycleId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReopenCycleRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MutationResult"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -468,6 +716,33 @@
           }
         }
       },
+      "AuditPage": {
+        "required": [
+          "items",
+          "nextPage",
+          "version"
+        ],
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AuditView"
+            }
+          },
+          "nextPage": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "version": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
       "AuditView": {
         "required": [
           "id",
@@ -490,6 +765,23 @@
           "recordedAt": {
             "type": "string",
             "format": "date-time"
+          }
+        }
+      },
+      "CloseCycleRequest": {
+        "required": [
+          "operationId",
+          "expectedVersion"
+        ],
+        "type": "object",
+        "properties": {
+          "operationId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "expectedVersion": {
+            "type": "integer",
+            "format": "int64"
           }
         }
       },
@@ -547,7 +839,8 @@
           "outstandingPaise",
           "payoutShortfallPaise",
           "dues",
-          "payout"
+          "payout",
+          "closedAt"
         ],
         "type": "object",
         "properties": {
@@ -601,6 +894,13 @@
                 "$ref": "#/components/schemas/PayoutSummary"
               }
             ]
+          },
+          "closedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
           }
         }
       },
@@ -631,6 +931,22 @@
         "type": "object",
         "properties": {
           "profile": {
+            "type": "string"
+          }
+        }
+      },
+      "DraftMemberEdit": {
+        "required": [
+          "id",
+          "name"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
             "type": "string"
           }
         }
@@ -682,6 +998,30 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/PaymentView"
+            }
+          }
+        }
+      },
+      "EditMembersRequest": {
+        "required": [
+          "operationId",
+          "expectedVersion",
+          "members"
+        ],
+        "type": "object",
+        "properties": {
+          "operationId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "expectedVersion": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "members": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DraftMemberEdit"
             }
           }
         }
@@ -749,7 +1089,8 @@
           "updatedAt",
           "members",
           "cycles",
-          "history"
+          "history",
+          "historyNextPage"
         ],
         "type": "object",
         "properties": {
@@ -806,6 +1147,13 @@
             "items": {
               "$ref": "#/components/schemas/AuditView"
             }
+          },
+          "historyNextPage": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
           }
         }
       },
@@ -935,7 +1283,9 @@
           "id",
           "amountPaise",
           "paymentDate",
-          "fundingNote"
+          "fundingNote",
+          "recordedAt",
+          "reversalReason"
         ],
         "type": "object",
         "properties": {
@@ -952,6 +1302,16 @@
             "format": "date"
           },
           "fundingNote": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "recordedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "reversalReason": {
             "type": [
               "null",
               "string"
@@ -1026,7 +1386,49 @@
           }
         }
       },
+      "ReopenCycleRequest": {
+        "required": [
+          "operationId",
+          "expectedVersion",
+          "reason"
+        ],
+        "type": "object",
+        "properties": {
+          "operationId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "expectedVersion": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "reason": {
+            "type": "string"
+          }
+        }
+      },
       "ReversePaymentRequest": {
+        "required": [
+          "operationId",
+          "expectedVersion",
+          "reason"
+        ],
+        "type": "object",
+        "properties": {
+          "operationId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "expectedVersion": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "reason": {
+            "type": "string"
+          }
+        }
+      },
+      "ReversePayoutRequest": {
         "required": [
           "operationId",
           "expectedVersion",
